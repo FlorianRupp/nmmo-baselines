@@ -8,10 +8,13 @@ import numpy as np
 from random import shuffle
 
 # Scripted models included with the baselines repository
+from pyasn1_modules.rfc3279 import Curve
+
 from scripted import baselines
 from nmmo.lib.spawn import spawn_concurrent, spawn_continuous
 import sys
 import nmmo.core.realm
+from time import sleep
 
 
 def simulate(env, config, render=False, horizon=float('inf')):
@@ -22,7 +25,8 @@ def simulate(env, config, render=False, horizon=float('inf')):
     env.reset()
 
     t = 0
-    while env.num_agents != 0:
+    while True:
+        # while env.num_agents != 0:
         if render:
             env.render()
 
@@ -33,6 +37,7 @@ def simulate(env, config, render=False, horizon=float('inf')):
         t += 1
         if t >= horizon:
             break
+        sleep(1)
 
     print("All agents died, stopping now")
     env.close()
@@ -40,8 +45,8 @@ def simulate(env, config, render=False, horizon=float('inf')):
     # return env.terminal()
 
 
-def gen_map(env, config, render=False, horizon=float('inf')):
-    env = env(config())
+def gen_map(config):
+    DummyMapGenerator(config).generate_map(1)
 
 
 class CustomMapGenerator(nmmo.MapGenerator):
@@ -78,6 +83,11 @@ class DummyMapGenerator(nmmo.MapGenerator):
         matl[-1] = [Terrain.STONE] * center_size
         matl[:, 0] = [Terrain.STONE] * center_size
         matl[:, -1] = [Terrain.STONE] * center_size
+
+        # make sure in 2 corners is always grass to be vacant to spawn
+        player_pos = [(1, 1), (center_size - 2, center_size - 2)]
+        matl[player_pos[0]] = Terrain.GRASS
+        matl[player_pos[1]] = Terrain.GRASS
 
         matl = np.pad(matl, pad_width=self.config.MAP_BORDER)
         return fractal, matl
@@ -117,11 +127,16 @@ class CustomMapGenerator2(nmmo.MapGenerator):
         return fractal, matl
 
 
-# class MyPlayerLoader(nmmo.lib.spawn):
-#     pass
-
 def spawn(config):
-    return [(16, 16), (16, 18)]
+    # spawn agents in corners
+    player1 = (config.MAP_BORDER+1, config.MAP_BORDER+1)
+    player2 = (config.MAP_BORDER+config.MAP_CENTER-2, config.MAP_BORDER+config.MAP_CENTER-2)
+    return [player1, player2]
+
+
+class StandingAgent(nmmo.Agent):
+    def __call__(self, *args, **kwargs):
+        return self.actions
 
 
 class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
@@ -134,8 +149,8 @@ class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
     # Forage: explicitly searches for food and water
     # Combat: forages and actively fights other agents
     SPECIALIZE = True
-
-    PLAYERS = [baselines.Fisher]
+    COMBAT_SYSTEM_ENABLED = True
+    PLAYERS = [StandingAgent]
 
     PLAYER_N = 2
 
@@ -148,24 +163,26 @@ class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
     RENDER = True
 
     # Force terrain generation -- avoids unexpected behavior from caching
-    MAP_FORCE_GENERATION = True
+    MAP_FORCE_GENERATION = False
 
     NPC_N = 0
 
     # MAP_N_TILE = 1
     MAP_GENERATE_PREVIEWS = True
-    MAP_PREVIEW_DOWNSCALE = 1
-    MAP_CENTER = 10
-    # MAP_BORDER = 0
+    # MAP_PREVIEW_DOWNSCALE = 1
+    MAP_CENTER = 8
+    MAP_BORDER = 6
+    # MAP_GENERATOR = CustomMapGenerator
     MAP_GENERATOR = DummyMapGenerator
+
     LOG_VERBOSE = False
     LOG_EVENTS = False
 
     PROGRESSION_SYSTEM_ENABLED = False
 
     PLAYER_SPAWN_FUNCTION = spawn
+    # PLAYER_SPAWN_ATTEMPTS = 5
     # PLAYER_SPAWN_FUNCTION = spawn_concurrent
-    # TODO big pormblem is how to decide where agents spawn in a cumstom function
     # how to frame it competitive?
 
 
@@ -177,7 +194,5 @@ def printConfig(config):
 
 if __name__ == '__main__':
     # printConfig(Config())
-    # print("myspawn", spawn(Config()))
-    # print(spawn_concurrent(Config()))
     simulate(nmmo.Env, Config, render=True)
-    # gen_map(nmmo.Env, Config)
+    # gen_map(Config())
