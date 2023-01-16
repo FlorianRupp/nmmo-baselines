@@ -5,6 +5,7 @@ from pdb import set_trace as T
 import nmmo
 from nmmo import Terrain
 import numpy as np
+import tqdm
 from random import shuffle
 
 # Scripted models included with the baselines repository
@@ -17,32 +18,35 @@ import nmmo.core.realm
 from time import sleep
 
 
-def simulate(env, config, render=False, horizon=float('inf')):
-    '''Simulate an environment for a fixed horizon'''
+def simulate(environment, config, render=False, horizon=float('inf'), runs=1, delay=0):
+    winners = []
 
-    # Environment accepts a config object
-    env = env(config())
-    env.reset()
+    env = environment(config())
+    for i in range(runs):
+        # Environment accepts a config object
+        env.reset()
 
-    t = 0
-    while True:
-        # while env.num_agents != 0:
-        if render:
-            env.render()
+        t = 0
+        while True:
+            # while env.num_agents != 0:
+            if render:
+                env.render()
 
-        # Scripted API computes actions
-        obs, rewards, dones, infos = env.step({})
+            # Scripted API computes actions
+            obs, rewards, dones, infos = env.step({})
 
-        # Later examples will use a fixed horizon
-        t += 1
-        if t >= horizon:
-            break
-        sleep(1)
+            # Later examples will use a fixed horizon
+            t += 1
+            sleep(delay)
+            if env.num_agents <= 1:
+                if env.num_agents == 1:
+                    winners.append(env.agents[0])
+                else:
+                    winners.extend([1, 2])
+                break
 
-    print("All agents died, stopping now")
     env.close()
-    # Called at the end of simulation to obtain logs
-    # return env.terminal()
+    return winners
 
 
 def gen_map(config):
@@ -129,14 +133,33 @@ class CustomMapGenerator2(nmmo.MapGenerator):
 
 def spawn(config):
     # spawn agents in corners
-    player1 = (config.MAP_BORDER+1, config.MAP_BORDER+1)
-    player2 = (config.MAP_BORDER+config.MAP_CENTER-2, config.MAP_BORDER+config.MAP_CENTER-2)
+    player1 = (config.MAP_BORDER + 1, config.MAP_BORDER + 1)
+    player2 = (config.MAP_BORDER + config.MAP_CENTER - 2, config.MAP_BORDER + config.MAP_CENTER - 2)
     return [player1, player2]
 
 
 class StandingAgent(nmmo.Agent):
+    scripted = True
+
     def __call__(self, *args, **kwargs):
         return self.actions
+
+
+class EastAgent(nmmo.Agent):
+    scripted = True
+
+    def __call__(self, *args, **kwargs):
+        return {nmmo.action.Move: {nmmo.action.Direction: nmmo.action.East}}
+
+
+class WestAgent(nmmo.Agent):
+    scripted = True
+
+    def __call__(self, *args, **kwargs):
+        return {nmmo.action.Move: {nmmo.action.Direction: nmmo.action.West}}
+
+
+RENDERING = False
 
 
 class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
@@ -150,27 +173,23 @@ class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
     # Combat: forages and actively fights other agents
     SPECIALIZE = True
     COMBAT_SYSTEM_ENABLED = True
-    PLAYERS = [StandingAgent]
+    # PLAYERS = [EastAgent, WestAgent]
+    PLAYERS = [baselines.Forage, baselines.Forage]
 
     PLAYER_N = 2
-
     PLAYER_DEATH_FOG = None
 
     # Set a unique path for demo maps
     PATH_MAPS = 'maps/demos'
-
-    # Enable rendering
-    RENDER = True
+    RENDER = RENDERING
 
     # Force terrain generation -- avoids unexpected behavior from caching
-    MAP_FORCE_GENERATION = False
+    MAP_FORCE_GENERATION = True
 
     NPC_N = 0
-
-    # MAP_N_TILE = 1
-    MAP_GENERATE_PREVIEWS = True
+    MAP_GENERATE_PREVIEWS = False
     # MAP_PREVIEW_DOWNSCALE = 1
-    MAP_CENTER = 8
+    MAP_CENTER = 16
     MAP_BORDER = 6
     # MAP_GENERATOR = CustomMapGenerator
     MAP_GENERATOR = DummyMapGenerator
@@ -181,12 +200,9 @@ class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
     PROGRESSION_SYSTEM_ENABLED = False
 
     PLAYER_SPAWN_FUNCTION = spawn
-    # PLAYER_SPAWN_ATTEMPTS = 5
-    # PLAYER_SPAWN_FUNCTION = spawn_concurrent
-    # how to frame it competitive?
 
 
-def printConfig(config):
+def print_config(config):
     for attr in dir(config):
         if not attr.startswith('__'):
             print('{}: {}'.format(attr, getattr(config, attr)))
@@ -194,5 +210,9 @@ def printConfig(config):
 
 if __name__ == '__main__':
     # printConfig(Config())
-    simulate(nmmo.Env, Config, render=True)
+    over_all = []
+    for i in tqdm.tqdm(range(1)):
+        winners = simulate(nmmo.Env, Config, render=RENDERING, runs=20, delay=0)
+        over_all.append(sum(winners)/len(winners))
     # gen_map(Config())
+    print(over_all)
