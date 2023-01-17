@@ -50,7 +50,7 @@ def simulate(environment, config, render=False, horizon=float('inf'), runs=1, de
 
 
 def gen_map(config):
-    DummyMapGenerator(config).generate_map(1)
+    DummyMapGenerator(config).generate_map(2)
 
 
 class CustomMapGenerator(nmmo.MapGenerator):
@@ -131,7 +131,7 @@ class CustomMapGenerator2(nmmo.MapGenerator):
         return fractal, matl
 
 
-def spawn(config):
+def spawn(config, *args):
     # spawn agents in corners
     player1 = (config.MAP_BORDER + 1, config.MAP_BORDER + 1)
     player2 = (config.MAP_BORDER + config.MAP_CENTER - 2, config.MAP_BORDER + config.MAP_CENTER - 2)
@@ -187,7 +187,7 @@ class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
     MAP_FORCE_GENERATION = True
 
     NPC_N = 0
-    MAP_GENERATE_PREVIEWS = False
+    MAP_GENERATE_PREVIEWS = True
     # MAP_PREVIEW_DOWNSCALE = 1
     MAP_CENTER = 16
     MAP_BORDER = 6
@@ -216,3 +216,5 @@ if __name__ == '__main__':
         over_all.append(sum(winners)/len(winners))
     # gen_map(Config())
     print(over_all)
+
+# C:\Users\"Florian Rupp"\Envs\lab\Scripts\activate.bat
