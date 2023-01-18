@@ -44,7 +44,7 @@ def simulate(environment, config, render=False, horizon=float('inf'), runs=1, de
                 else:
                     winners.extend([1, 2])
                 break
-
+        print("Steps needed:", t)
     env.close()
     return winners
 
@@ -174,7 +174,7 @@ class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
     SPECIALIZE = True
     COMBAT_SYSTEM_ENABLED = True
     # PLAYERS = [EastAgent, WestAgent]
-    PLAYERS = [baselines.Forage, baselines.Forage]
+    PLAYERS = [baselines.Mage, baselines.Mage]
 
     PLAYER_N = 2
     PLAYER_DEATH_FOG = None
@@ -189,7 +189,7 @@ class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
     NPC_N = 0
     MAP_GENERATE_PREVIEWS = True
     # MAP_PREVIEW_DOWNSCALE = 1
-    MAP_CENTER = 16
+    MAP_CENTER = 8
     MAP_BORDER = 6
     # MAP_GENERATOR = CustomMapGenerator
     MAP_GENERATOR = DummyMapGenerator
@@ -198,7 +198,6 @@ class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
     LOG_EVENTS = False
 
     PROGRESSION_SYSTEM_ENABLED = False
-
     PLAYER_SPAWN_FUNCTION = spawn
 
 
@@ -211,8 +210,8 @@ def print_config(config):
 if __name__ == '__main__':
     # printConfig(Config())
     over_all = []
-    for i in tqdm.tqdm(range(1)):
-        winners = simulate(nmmo.Env, Config, render=RENDERING, runs=20, delay=0)
+    for i in tqdm.tqdm(range(10)):
+        winners = simulate(nmmo.Env, Config, render=RENDERING, runs=20, delay=1)
         over_all.append(sum(winners)/len(winners))
     # gen_map(Config())
     print(over_all)
