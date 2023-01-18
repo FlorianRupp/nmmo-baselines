@@ -70,7 +70,7 @@ def test_balancing(runs=1):
 
 
 balancings = []
-for i in tqdm(range(300)):
+for i in tqdm(range(3000)):
     print(f"Generated map {i}")
     balancings.append({"idx": i, "balancing": test_balancing(runs=20)})
     shutil.copytree(r"maps/demos/map1", f"gen_maps/map{i}")
