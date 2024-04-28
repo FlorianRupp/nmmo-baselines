@@ -11,6 +11,7 @@ from random import shuffle
 # Scripted models included with the baselines repository
 from pyasn1_modules.rfc3279 import Curve
 
+from nmmo.core import env
 from scripted import baselines
 from nmmo.lib.spawn import spawn_concurrent, spawn_continuous
 import sys
@@ -18,10 +19,27 @@ import nmmo.core.realm
 from time import sleep
 
 
+class MyPPOAgent(nmmo.Agent):
+    scripted = False
+
+    def __init__(self, config, idx):
+        super().__init__(config, idx)
+        # print(f"Created agent {idx}")
+        # self.env = env
+        # self.model = PPO(MlpPolicy, self.env, verbose=0)
+
+    def __call__(self, *args, **kwargs):
+        # print(args, kwargs)
+        # action, _ = self.model.predict({})
+        return None #{nmmo.action.Move: {nmmo.action.Direction: nmmo.action.East}}
+        # return w.action(1)
+        # return {self.idx, self.env.action(1)}
+
+
 def simulate(environment, config, render=False, horizon=float('inf'), runs=1, delay=0):
     winners = []
-
     env = environment(config())
+
     for i in range(runs):
         # Environment accepts a config object
         env.reset()
@@ -33,11 +51,13 @@ def simulate(environment, config, render=False, horizon=float('inf'), runs=1, de
                 env.render()
 
             # Scripted API computes actions
-            obs, rewards, dones, infos = env.step({})
+            action = {1: {nmmo.io.action.Move: {nmmo.io.action.Direction: 2}}}
+            obs, rewards, dones, infos = env.step(action)
 
             # Later examples will use a fixed horizon
             t += 1
             sleep(delay)
+            print("Active agents:", env.agents)
             if env.num_agents <= 1:
                 if env.num_agents == 1:
                     winners.append(env.agents[0])
@@ -78,8 +98,7 @@ class DummyMapGenerator(nmmo.MapGenerator):
 
         fractal = np.zeros((size, size))
 
-        terrains = {Terrain.STONE: 0.2, Terrain.GRASS: 0.4, Terrain.FOREST: 0.1, Terrain.TREE: 0.1, Terrain.ORE: 0.025,
-                    Terrain.CRYSTAL: 0.025, Terrain.WATER: 0.15}
+        terrains = {Terrain.STONE: 0.2, Terrain.GRASS: 0.5, Terrain.FOREST: 0.15, Terrain.WATER: 0.15}
 
         matl = np.random.choice(list(terrains.keys()), size=(center_size, center_size),
                                 p=list(terrains.values())).astype(np.uint8)
@@ -135,7 +154,8 @@ def spawn(config, *args):
     # spawn agents in corners
     player1 = (config.MAP_BORDER + 1, config.MAP_BORDER + 1)
     player2 = (config.MAP_BORDER + config.MAP_CENTER - 2, config.MAP_BORDER + config.MAP_CENTER - 2)
-    return [player1, player2]
+    player3 = (config.MAP_BORDER + 1, config.MAP_BORDER + 2)
+    return [player1, player2, player3]
 
 
 class StandingAgent(nmmo.Agent):
@@ -159,7 +179,7 @@ class WestAgent(nmmo.Agent):
         return {nmmo.action.Move: {nmmo.action.Direction: nmmo.action.West}}
 
 
-RENDERING = False
+RENDERING = True
 
 
 class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
@@ -174,9 +194,10 @@ class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
     SPECIALIZE = True
     COMBAT_SYSTEM_ENABLED = True
     # PLAYERS = [EastAgent, WestAgent]
-    PLAYERS = [baselines.Mage, baselines.Mage]
+    PLAYERS = [baselines.ForageOnly, baselines.ForageOnly] #, baselines.ForageOnly]
+    # PLAYERS = [MyPPOAgent, baselines.Forage]
 
-    PLAYER_N = 2
+    PLAYER_N = 3
     PLAYER_DEATH_FOG = None
 
     # Set a unique path for demo maps
@@ -184,7 +205,7 @@ class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
     RENDER = RENDERING
 
     # Force terrain generation -- avoids unexpected behavior from caching
-    MAP_FORCE_GENERATION = True
+    MAP_FORCE_GENERATION = False
 
     NPC_N = 0
     MAP_GENERATE_PREVIEWS = True
@@ -199,6 +220,7 @@ class Config(nmmo.config.Small, nmmo.config.AllGameSystems):
 
     PROGRESSION_SYSTEM_ENABLED = False
     PLAYER_SPAWN_FUNCTION = spawn
+    # PLAYER_VISION_RADIUS = 20
 
 
 def print_config(config):
@@ -208,7 +230,7 @@ def print_config(config):
 
 
 if __name__ == '__main__':
-    # printConfig(Config())
+    #print_config(Config())
     over_all = []
     for i in tqdm.tqdm(range(10)):
         winners = simulate(nmmo.Env, Config, render=RENDERING, runs=20, delay=1)

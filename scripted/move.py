@@ -103,9 +103,9 @@ def forageDijkstra(config, ob, actions, food_max, water_max, cutoff=100):
    Tile   = nmmo.Serialized.Tile
 
    agent  = ob.agent
+   # print("TILE", ob.tile(1,0))
    food   = nmmo.scripting.Observation.attribute(agent, Entity.Food)
    water  = nmmo.scripting.Observation.attribute(agent, Entity.Water)
-
    best      = -1000 
    start     = (0, 0)
    goal      = (0, 0)
@@ -140,6 +140,8 @@ def forageDijkstra(config, ob, actions, food_max, water_max, cutoff=100):
          food  = max(0, food - 1)
          water = max(0, water - 1)
 
+         # print("matl", matl, "forest index", material.Forest.index)
+
          if matl == material.Forest.index:
             food = min(food+food_max//2, food_max)
          for pos in adjacentPos(nxt):
@@ -166,8 +168,11 @@ def forageDijkstra(config, ob, actions, food_max, water_max, cutoff=100):
 
    while goal in backtrace and backtrace[goal] != start:
       goal = backtrace[goal]
+   # print(ob.obs["map"])
+   #print("agent:", agent, "goal:", goal)
    direction = towards(goal)
    actions[nmmo.action.Move] = {nmmo.action.Direction: direction}
+   # print(goal, actions)
 
 def findResource(config, ob, resource):
     vision = config.PLAYER_VISION_RADIUS
