@@ -447,7 +447,6 @@ class ForageOnly(Scripted):
             path = astar(obs, pos, closest_food)
             print("p", path)
             if len(path) >= 2:
-                # return {nmmo.action.Move: {nmmo.action.Direction: nmmo.action.North}}
                 action = {nmmo.action.Move: {nmmo.action.Direction: get_direction(path[0], path[1])}}
                 print("Action:", action)
                 return action

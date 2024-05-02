@@ -9,7 +9,7 @@ _ = nmmo.Env()
 terrain_idx_mapping = {Terrain.GRASS: 2, Terrain.FOREST: 1, Terrain.STONE: 5, Terrain.WATER: 3, Terrain.SCRUB: 2, 0: 0}
 
 
-def run_dikjstra(x, y, map, passable_values):
+def run_dikjstra(y, x, map, passable_values):
     print(map)
     dikjstra_map = np.full((len(map), len(map[0])), -1)
     visited_map = np.zeros((len(map), len(map[0])))
@@ -107,7 +107,6 @@ def get_direction(pos1, pos2):
 
 
 def format_map(obs):
-    print(terrain_idx_mapping)
     # TODO fix observation size bug
     o = np.full([20, 20], 0)
     # l = []
@@ -125,10 +124,12 @@ class NoFoodReachableException(Exception):
 
 def get_closest_food(pos, o):
     dists = run_dikjstra(pos[0], pos[1], o, [1, 2])[0]
+    print(dists)
     # get all food distances
     ys, xs = np.where(o == 1)
     dists = [dists[y][x] for x, y in zip(xs, ys)]
     closest = np.argsort(dists)
+    print("Closest:", closest)
     if len(closest) == 0:
         raise NoFoodReachableException()
     return ys[closest[0]], xs[closest[0]]
