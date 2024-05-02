@@ -6,7 +6,7 @@ import nmmo
 
 _ = nmmo.Env()
 
-terrain_idx_mapping = {Terrain.GRASS: 2, Terrain.FOREST: 1, Terrain.STONE: 5, Terrain.WATER: 3, 0: 0}
+terrain_idx_mapping = {Terrain.GRASS: 2, Terrain.FOREST: 1, Terrain.STONE: 5, Terrain.WATER: 3, Terrain.SCRUB: 2, 0: 0}
 
 
 def run_dikjstra(x, y, map, passable_values):
@@ -50,7 +50,7 @@ def heuristic(node, goal):
 def is_valid_move(grid, x, y):
     # Check if the move is within the grid and the cell is not blocked
     x, y = int(x), int(y)
-    return 0 <= x < len(grid) and 0 <= y < len(grid[0]) and grid[x][y] != 5
+    return 0 <= x < len(grid) and 0 <= y < len(grid[0]) and grid[x][y] != 5 and grid[x][y] != 3
 
 
 def astar(grid, start, goal):
@@ -87,19 +87,19 @@ def astar(grid, start, goal):
 
             heapq.heappush(open_list, neighbor)
 
-    return None  # No path found
+    return []  # No path found
 
 
 def get_direction(pos1, pos2):
     diff = np.array(pos1) - np.array(pos2)
     if diff[0] == -1 and diff[1] == 0:
-        return nmmo.action.East
-    elif diff[0] == 1 and diff[1] == 0:
-        return nmmo.action.West
-    elif diff[0] == 0 and diff[1] == -1:
         return nmmo.action.South
-    elif diff[0] == 0 and diff[1] == 1:
+    elif diff[0] == 1 and diff[1] == 0:
         return nmmo.action.North
+    elif diff[0] == 0 and diff[1] == -1:
+        return nmmo.action.East
+    elif diff[0] == 0 and diff[1] == 1:
+        return nmmo.action.West
     elif diff[0] == 0 and diff[1] == 0:
         return {}  # "DONT MOVE"
     else:
@@ -107,11 +107,20 @@ def get_direction(pos1, pos2):
 
 
 def format_map(obs):
+    print(terrain_idx_mapping)
     # TODO fix observation size bug
-    o = np.full([16, 16], 0)
+    o = np.full([20, 20], 0)
+    # l = []
     for row in obs:
+        # l.append(row[2])
         o[int(row[2])][int(row[3])] = terrain_idx_mapping[int(row[1])]
+    # print(max(l))
     return o[7:13, 7:13]
+
+
+class NoFoodReachableException(Exception):
+    def __init__(self):
+        super().__init__("No food reachable.")
 
 
 def get_closest_food(pos, o):
@@ -120,4 +129,6 @@ def get_closest_food(pos, o):
     ys, xs = np.where(o == 1)
     dists = [dists[y][x] for x, y in zip(xs, ys)]
     closest = np.argsort(dists)
-    return xs[closest[0]], ys[closest[0]]
+    if len(closest) == 0:
+        raise NoFoodReachableException()
+    return ys[closest[0]], xs[closest[0]]

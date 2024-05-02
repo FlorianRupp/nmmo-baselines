@@ -11,7 +11,7 @@ from nmmo.systems import skill, item
 from nmmo.lib import colors
 from nmmo import action as Action
 
-from scripted.helper import astar, get_direction, format_map, get_closest_food
+from scripted.helper import astar, get_direction, format_map, get_closest_food, NoFoodReachableException
 from scripted import behavior, move, attack, utils
 import pickle
 
@@ -437,20 +437,31 @@ class ForageOnly(Scripted):
 
     def __call__(self, obs):
         super().__call__(obs)
-
+        print("-"*5, "AGENT ID:", self.iden, "-"*5)
         obs = format_map(self.ob.tiles)
-        pos = (self.c - 7, self.r - 7)
-        closest_food = get_closest_food(pos, obs)
-        path = astar(obs, pos, closest_food)
-        if len(path) != 0:
-            self.actions = {nmmo.action.Move: {nmmo.action.Direction: get_direction(path[0], path[1])}}
-        else:
-            self.actions = {nmmo.action.Move: {nmmo.action.Direction: None}}
+        pos = (self.r - 7, self.c - 7)
+        print("Agent pos:", pos)
+        try:
+            closest_food = get_closest_food(pos, obs)
+            print("Food:", closest_food)
+            path = astar(obs, pos, closest_food)
+            print("p", path)
+            if len(path) >= 2:
+                # return {nmmo.action.Move: {nmmo.action.Direction: nmmo.action.North}}
+                action = {nmmo.action.Move: {nmmo.action.Direction: get_direction(path[0], path[1])}}
+                print("Action:", action)
+                return action
+            else:
+                return {}
+
+        except NoFoodReachableException:
+            print("No food reachable")
+            return {}
+
         # with open("obs.pkl", "wb") as f:
         #     pickle.dump(self.ob.tiles, f)
         # self.forage()
         # self.gather(material.Forest)
-        return self.actions
 
 
 class Combat(Scripted):

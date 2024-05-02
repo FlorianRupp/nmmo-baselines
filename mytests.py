@@ -155,7 +155,7 @@ def spawn(config, *args):
     player1 = (config.MAP_BORDER + 1, config.MAP_BORDER + 1)
     player2 = (config.MAP_BORDER + config.MAP_CENTER - 2, config.MAP_BORDER + config.MAP_CENTER - 2)
     player3 = (config.MAP_BORDER + 1, config.MAP_BORDER + 2)
-    return [player1, player2, player3]
+    return [player1, player2]#, player3]
 
 
 class StandingAgent(nmmo.Agent):
@@ -233,7 +233,7 @@ if __name__ == '__main__':
     #print_config(Config())
     over_all = []
     for i in tqdm.tqdm(range(10)):
-        winners = simulate(nmmo.Env, Config, render=RENDERING, runs=20, delay=1)
+        winners = simulate(nmmo.Env, Config, render=RENDERING, runs=20, delay=2)
         over_all.append(sum(winners)/len(winners))
     # gen_map(Config())
     print(over_all)
